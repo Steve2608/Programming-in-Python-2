@@ -1,0 +1,10 @@
+# PyCharm stuff
+.idea
+
+# compiled files
+**__pycache__**
+
+# files for ex2
+input
+output
+logfile.txt
