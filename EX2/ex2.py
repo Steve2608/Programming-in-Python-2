@@ -54,11 +54,12 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
                 continue
 
             # file exists, is small enough and might be an image
-            if (img := cv2.imread(filename)) is None:
+            read_color = cv2.IMREAD_COLOR if len(max_dimensions) == 3 else cv2.IMREAD_GRAYSCALE
+            # read file as grayscale ->
+            if (img := cv2.imread(filename, read_color)) is None:
                 __write_to_log(path, 3)
                 continue
-            # TODO variance over only first two dims
-            if np.var(img) == 0:
+            if np.var(np.ravel(img)) == 0:
                 __write_to_log(path, 4)
                 continue
             if len(shape := img.shape) != len(max_dimensions) or shape > max_dimensions:
