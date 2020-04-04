@@ -127,4 +127,4 @@ if __name__ == '__main__':
     if not 2 <= len(max_dimensions) <= 3:
         raise ValueError(f'Image must have two or three dimensions but had: {args.file_dimensions}')
 
-    clean_dataset(input_path, output_path, logfile)
+    print(clean_dataset(input_path, output_path, logfile))
