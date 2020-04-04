@@ -10,6 +10,7 @@ import numpy as np
 
 def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
     __check_in_dir(input_dir)
+    __check_path(logfile)
     __create_output_dir(output_dir, overwrite=True)
 
     paths = __list_all_files_sorted(input_dir)
