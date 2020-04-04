@@ -1,7 +1,7 @@
 import argparse
 import glob
-import os
 import shutil
+from pathlib import Path
 from typing import List
 
 import cv2
@@ -9,72 +9,59 @@ import numpy as np
 
 
 def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
-    __check_in_dir(input_dir)
-    __check_path(logfile)
-    __create_output_dir(output_dir, overwrite=True)
+    __check_paths_params(input_dir, logfile, output_dir)
 
-    paths = __list_all_files_sorted(input_dir)
-    return __process_files(paths, input_dir, logfile)
+    files: List[str] = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
+    return __process_files(files, input_dir, logfile)
 
 
-def __check_in_dir(input_dir: str):
+def __check_paths_params(input_dir, logfile, output_dir, overwrite: bool = False):
+    def __check_path(path: str):
+        if not path:
+            raise ValueError(f"Path must not be null or empty: {path}")
+
     __check_path(input_dir)
-    if not os.path.exists(input_dir):
+    if not (input_path := Path(input_dir)).exists():
         raise ValueError(f"Input path '{input_dir}' does not exist!")
-    if not os.path.isdir(input_dir):
+    if not input_path.is_dir():
         raise ValueError(f"Input path '{input_dir}' is not a directory!")
 
-
-def __check_path(path: str):
-    if not path:
-        raise ValueError(f"Path must not be null or empty: {path}")
-
-
-def __create_output_dir(path: str, overwrite: bool = False):
-    __check_path(path)
+    __check_path(logfile)
 
     # optionally overwrite path and all subdirectories
-    if os.path.exists(path) and overwrite:
+    if (path := Path(output_dir)).exists() and overwrite:
         shutil.rmtree(path, ignore_errors=True)
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
 
-def __list_all_files_sorted(path: str) -> List[str]:
-    # trimming away file separator
-    if path.endswith(os.sep):
-        path = path[:-1]
-    # sort by natural order of strings
-    return sorted(glob.glob(f'{path}/**', recursive=True))
-
-
-def __process_files(paths: List[str], input_dir: str, logfile: str) -> int:
-    def __write_to_log(path: str, error_code: int):
-        log.write(f'{os.path.relpath(path, input_dir)};{error_code}\n')
+def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
+    def __write_to_log(path: Path, error_code: int):
+        log.write(f'{path.relative_to(input_dir)};{error_code}\n')
 
     hashes = set()
     valid = 0
     with open(logfile, 'w') as log:
-        for path in paths:
-            if os.path.isdir(path):
+        for filename in files:
+            if (path := Path(filename)).is_dir():
                 # ignore directories
                 continue
             if not __valid_extension(path):
                 __write_to_log(path, 1)
                 continue
-            if not __valid_file_size(path):
+            if not path.stat().st_size <= max_file_size:
                 __write_to_log(path, 2)
                 continue
 
             # file exists, is small enough and might be an image
-            if (img := cv2.imread(path)) is None:
+            if (img := cv2.imread(filename)) is None:
                 __write_to_log(path, 3)
                 continue
             # TODO variance over only first two dims
             if np.var(img) == 0:
                 __write_to_log(path, 4)
                 continue
-            if len(img.shape) != len(max_dimensions) or img.shape > max_dimensions:
+            if len(shape := img.shape) != len(max_dimensions) or shape > max_dimensions:
                 __write_to_log(path, 5)
                 continue
 
@@ -84,27 +71,22 @@ def __process_files(paths: List[str], input_dir: str, logfile: str) -> int:
                 continue
             else:
                 # new file found
-                # print(f'Found new file: {path}')
+                print(f'Found new file: {path}')
                 hashes.add(h)
                 valid += 1
 
-                shutil.copy(path, ('output/%06d.jpg' % valid))
+                shutil.copy(path, Path('output', '%06d.jpg' % valid))
     return valid
 
 
-def __valid_extension(path: str) -> bool:
-    # length has to be at least 4 to even match
-    # .jpg would be the shortest possible matching path
-    if len(path) < 4:
-        return False
-
-    # we are only interested in the last 4 characters
-    suffix = path[-4:].lower()
-    return suffix[-3:] == 'jpg' or suffix == 'jpeg'
-
-
-def __valid_file_size(path: str) -> bool:
-    return os.path.getsize(path) <= max_file_size
+def __valid_extension(path: Path) -> bool:
+    # match case insensitively
+    file_name = str(path).lower()
+    for ext in file_types:
+        # file name has to be longer than extension (x.jpg > jpg)
+        if len(ext) < len(file_name) and file_name.endswith(ext.lower()):
+            return True
+    return False
 
 
 if __name__ == '__main__':
@@ -134,7 +116,8 @@ if __name__ == '__main__':
     output_path = args.output_path[0]
     logfile = args.logfile[0]
 
-    file_types = args.file_types[0]
+    # no duplicates necessary/wanted
+    file_types = set(args.file_types)
 
     # in kB
     max_file_size = args.file_size[0] * 1000
