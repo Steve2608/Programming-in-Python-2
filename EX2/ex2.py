@@ -70,6 +70,7 @@ def __process_files(paths: List[str], input_dir: str, logfile: str) -> int:
             if (img := cv2.imread(path)) is None:
                 __write_to_log(path, 3)
                 continue
+            # TODO variance over only first two dims
             if np.var(img) == 0:
                 __write_to_log(path, 4)
                 continue
@@ -94,7 +95,12 @@ def __process_files(paths: List[str], input_dir: str, logfile: str) -> int:
 def __valid_extension(path: str) -> bool:
     # length has to be at least 4 to even match
     # .jpg would be the shortest possible matching path
-    return len(path) >= 4 and path[-3:].lower() == 'jpg' or path[-4:].lower() == 'jpeg'
+    if len(path) < 4:
+        return False
+
+    # we are only interested in the last 4 characters
+    suffix = path[-4:].lower()
+    return suffix[-3:] == 'jpg' or suffix == 'jpeg'
 
 
 def __valid_file_size(path: str) -> bool:
@@ -123,6 +129,7 @@ if __name__ == '__main__':
                         help='Maximum dimensions for image (H, W[, D]). Defaults to "100x100".')
     args = parser.parse_args()
 
+    # positional arguments
     input_path = args.input_path[0]
     output_path = args.output_path[0]
     logfile = args.logfile[0]
