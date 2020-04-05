@@ -51,6 +51,11 @@ class ImageNormalizer:
     # make class itself iterable as well; why not?
     __iter__ = get_images
 
+    def __str__(self):
+        return self.__class__.__name__ + f'({", ".join(self.file_names)})'
+
+    __repr__ = __str__
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Programming in Python 2, Exercise 3')
@@ -60,6 +65,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     imag_norm = ImageNormalizer(args.input_dir)
+    print(imag_norm)
 
     print('means/stds:', *imag_norm.stats, sep='\n', end='\n\n')
 
