@@ -4,21 +4,31 @@ import shutil
 from pathlib import Path
 from typing import List
 
-import cv2
 import numpy as np
+from PIL import Image, UnidentifiedImageError
 from joblib import hash
 # to measure execution time
 from tqdm import tqdm
 
 
 def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
-    __check_paths_params(input_dir, logfile, output_dir, overwrite=True)
+    __check_paths_params(input_dir, logfile, output_dir)
 
     files: List[str] = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
-    return __process_files(files, input_dir, logfile)
+    # ignore directories
+    paths = list(
+        filter(
+            lambda path: not path.is_dir(),
+            map(
+                lambda filename: Path(filename),
+                files
+            )
+        )
+    )
+    return __process_files(paths, input_dir, logfile)
 
 
-def __check_paths_params(input_dir, logfile, output_dir, overwrite: bool = False):
+def __check_paths_params(input_dir: str, logfile: str, output_dir: str):
     def __check_path(path: str):
         if not path:
             raise ValueError(f"Path must not be null or empty: {path}")
@@ -38,22 +48,13 @@ def __check_paths_params(input_dir, logfile, output_dir, overwrite: bool = False
     path.mkdir(parents=True, exist_ok=True)
 
 
-def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
+def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
     def __write_to_log(path: Path, error_code: int):
         log.write(f'{path.relative_to(input_dir)};{error_code}\n')
 
     valid = 0
     hashes = dict()
-    # ignore directories
-    paths = list(
-        filter(
-            lambda path: not path.is_dir(),
-            map(
-                lambda filename: Path(filename),
-                files
-            )
-        )
-    )
+
     with open(logfile, 'w') as log:
         for path in tqdm(paths, desc='Checking images'):
             if not __valid_extension(path):
@@ -64,42 +65,46 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
                 continue
 
             # file exists, is small enough and might be an image
-            if (img := cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)) is None:
+            try:
+                # experimentally faster than cv2.imread
+                img = Image.open(str(path))
+            except (FileNotFoundError, ValueError, UnidentifiedImageError) as e:
                 __write_to_log(path, 3)
                 continue
 
+            img = np.asarray(img)
             # set array to not writable; may speed up some calculations
             img.flags['WRITEABLE'] = False
 
             # assuming we only have gray-scale images we just have to check if all values are equal
             # computationally much faster than np.var(img) == 0
+            # if np.var(img) == 0:
             if np.all(img == img[0, 0]):
                 __write_to_log(path, 4)
                 continue
 
             # not too beautiful, but it does the trick
-            w, h = img.shape
-            if len(img.shape) != 2 or w < w_min or h < h_min:
+            if len(img.shape) != 2 or img.shape[0] < w_min or img.shape[1] < h_min:
                 __write_to_log(path, 5)
                 continue
 
             # file is valid in every way
-            if (h := hash(bytes(img))) in hashes:
+            if (h := hash(img)) in hashes:
                 __write_to_log(path, 6)
                 if verbose:
-                    print(f'{path} was duplicate of {hashes[h]}')
+                    print(f"'{path}' duplicate of {hashes[h]}")
                 continue
-            else:
-                # new file found
-                if verbose:
-                    print(f'Found new file: {path}')
 
+            # new file found
+            else:
+                if verbose:
+                    print(f"New file: '{path}'")
                 valid += 1
-                hashes[h] = (valid, path)
+                hashes[h] = (path, valid)
 
         # batch copy at the end
-        for (id, path) in tqdm(hashes.values(), desc='Copying images'):
-            shutil.copy(path, Path('output', '%06d.jpg' % id))
+        for (path, num) in tqdm(hashes.values(), desc='Copying images'):
+            shutil.copy(path, Path('output', f'{num:06d}.jpg'))
     return valid
 
 
@@ -133,6 +138,8 @@ if __name__ == '__main__':
     parser.add_argument('-file_dimensions', nargs=1, type=str, required=False,
                         default=['100x100'],
                         help='Minimum dimensions for image (H, W). Defaults to "100x100".')
+    parser.add_argument('--overwrite', const=True, action='store_const', default=False,
+                        help='Overwrite output directory.')
     parser.add_argument('--verbose', const=True, action='store_const', default=False,
                         help='Increase verbosity of output.')
 
@@ -154,6 +161,7 @@ if __name__ == '__main__':
         raise ValueError(f'Image must have two dimensions but had: {args.file_dimensions}')
     w_min, h_min = tuple(int(x) for x in args.file_dimensions[0].split('x'))
 
+    overwrite = args.overwrite
     verbose = args.verbose
 
     print(clean_dataset(input_path, output_path, logfile))

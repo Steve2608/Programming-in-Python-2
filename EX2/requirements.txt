@@ -1,3 +1,5 @@
-opencv-python>=4.2.0.34
-numpy
-tqdm
+opencv-python==4.2.0.34
+numpy==1.18.2
+tqdm==4.45.0
+joblib==0.14.1
+Pillow==7.1.1
