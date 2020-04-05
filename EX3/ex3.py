@@ -39,10 +39,10 @@ class ImageNormalizer:
     def get_images(self) -> Generator[np.ndarray, None, None]:
         for file_name in tqdm(self.file_names, desc='Normalizing images'):
             img = ImageNormalizer.read_image_as_array(file_name)
-            # yield scale(img)
-            scaled = img / 255  # map to [0, 1]
-            centered = scaled - scaled.mean()  # center
-            yield centered / centered.std()  # unit variance
+            # scaled = img / 255 changed in 04-04-2020 assignment
+            # centered = scaled - scaled.mean()
+            centered = img - img.mean()
+            yield centered / centered.std()
 
     @property
     def images(self):
