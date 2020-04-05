@@ -12,3 +12,6 @@ EX2/logfile_part_*.txt
 
 # files for ex3
 EX3/input/
+
+# submission folder
+submissions/
