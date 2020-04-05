@@ -42,7 +42,7 @@ def __check_paths_params(input_dir: str, logfile: str, output_dir: str):
     __check_path(logfile)
 
     # optionally overwrite path and all subdirectories
-    if (path := Path(output_dir)).exists() and overwrite:
+    if (path := Path(output_dir)).exists() and __overwrite:
         shutil.rmtree(path, ignore_errors=True)
 
     path.mkdir(parents=True, exist_ok=True)
@@ -60,7 +60,7 @@ def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
             if not __valid_extension(path):
                 __write_to_log(path, 1)
                 continue
-            if not path.stat().st_size >= min_file_size:
+            if not path.stat().st_size >= __min_file_size:
                 __write_to_log(path, 2)
                 continue
 
@@ -81,20 +81,20 @@ def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
                 continue
 
             # not too beautiful, but it does the trick
-            if len(img.shape) != 2 or img.shape[0] < w_min or img.shape[1] < h_min:
+            if len(img.shape) != 2 or img.shape[0] < __w_min or img.shape[1] < __h_min:
                 __write_to_log(path, 5)
                 continue
 
             # file is valid in every way
             if (h := hash(img)) in hashes:
                 __write_to_log(path, 6)
-                if verbose:
+                if __verbose:
                     print(f"'{path}' duplicate of {hashes[h]}")
                 continue
 
             # new file found
             else:
-                if verbose:
+                if __verbose:
                     print(f"New file: '{path}'")
                 valid += 1
                 hashes[h] = (path, valid)
@@ -108,12 +108,17 @@ def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
 def __valid_extension(path: Path) -> bool:
     # match case insensitively
     file_name = str(path).lower()
-    for ext in file_types:
+    for ext in __file_types:
         # file name has to be longer than extension (x.jpg > jpg)
         if len(ext) < len(file_name) and file_name.endswith(ext.lower()):
             return True
     return False
 
+
+__min_file_size = 10_000
+__file_types = ['jpg', 'jpeg']
+__w_min, __h_min = 100, 100
+__overwrite, __verbose = True, False
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Programming in Python 2, Exercise 2')
@@ -130,13 +135,14 @@ if __name__ == '__main__':
                              'overwritten)')
     parser.add_argument('-file_types', nargs='+', type=str, required=False, default=['jpg', 'jpeg'],
                         help=f'Allowed file extensions. Defaults to {["jpg", "jpeg"]}')
-    parser.add_argument('-file_size', type=int, required=False, default=10,
+    parser.add_argument('-file_size', type=int, required=False, default=__min_file_size / 1_000,
                         help='Minimum file size in kB. Defaults to 10.')
-    parser.add_argument('-file_dimensions', type=str, required=False, default='100x100',
+    parser.add_argument('-file_dimensions', type=str, required=False,
+                        default=f'{__w_min}x{__h_min}',
                         help='Minimum dimensions for image (H, W). Defaults to "100x100".')
-    parser.add_argument('--overwrite', const=True, action='store_const', default=False,
+    parser.add_argument('--overwrite', const=True, action='store_const', default=__overwrite,
                         help='Overwrite output directory.')
-    parser.add_argument('--verbose', const=True, action='store_const', default=False,
+    parser.add_argument('--verbose', const=True, action='store_const', default=__verbose,
                         help='Increase verbosity of output.')
 
     args = parser.parse_args()
@@ -147,17 +153,17 @@ if __name__ == '__main__':
     logfile = args.logfile
 
     # no duplicates necessary/wanted
-    file_types = set(args.file_types)
+    __file_types = set(args.file_types)
 
     # in kB
-    min_file_size = args.file_size * 1000
+    __min_file_size = args.file_size * 1000
 
     # convert to integer
     if args.file_dimensions.count('x') != 1:
         raise ValueError(f'Image must have two dimensions but had: {args.file_dimensions}')
-    w_min, h_min = tuple(int(x) for x in args.file_dimensions.split('x'))
+    __w_min, __h_min = tuple(int(x) for x in args.file_dimensions.split('x'))
 
-    overwrite = args.overwrite
-    verbose = args.verbose
+    __overwrite = args.overwrite
+    __verbose = args.verbose
 
     print(clean_dataset(input_dir, output_dir, logfile))
