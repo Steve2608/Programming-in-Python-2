@@ -117,23 +117,22 @@ def __valid_extension(path: Path) -> bool:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Programming in Python 2, Exercise 2')
-    parser.add_argument('input_path', nargs=1, type=str,
+    parser.add_argument('input_dir', type=str,
                         help='Relative or absolute path to input-directory. Path must point to a '
                              'directory. The directory must exist.')
-    parser.add_argument('output_path', nargs=1, type=str,
+    parser.add_argument('output_dir', type=str,
                         help='Relative or absolute path to output-directory. Path must point to a '
                              'directory. The directory does not have to exist and will be created ('
                              'contents will not be overwritten).')
-    parser.add_argument('logfile', nargs=1, type=str,
+    parser.add_argument('logfile', type=str,
                         help='Relative or absolute path to logfile. Path must point to a file. The '
                              'file does not have to exist and will be created (contents will be '
                              'overwritten)')
     parser.add_argument('-file_types', nargs='+', type=str, required=False, default=['jpg', 'jpeg'],
                         help=f'Allowed file extensions. Defaults to {["jpg", "jpeg"]}')
-    parser.add_argument('-file_size', nargs=1, type=int, required=False, default=[10],
+    parser.add_argument('-file_size', type=int, required=False, default=10,
                         help='Minimum file size in kB. Defaults to 10.')
-    parser.add_argument('-file_dimensions', nargs=1, type=str, required=False,
-                        default=['100x100'],
+    parser.add_argument('-file_dimensions', type=str, required=False, default='100x100',
                         help='Minimum dimensions for image (H, W). Defaults to "100x100".')
     parser.add_argument('--overwrite', const=True, action='store_const', default=False,
                         help='Overwrite output directory.')
@@ -143,22 +142,22 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # positional arguments
-    input_path = args.input_path[0]
-    output_path = args.output_path[0]
-    logfile = args.logfile[0]
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    logfile = args.logfile
 
     # no duplicates necessary/wanted
     file_types = set(args.file_types)
 
     # in kB
-    min_file_size = args.file_size[0] * 1000
+    min_file_size = args.file_size * 1000
 
     # convert to integer
-    if args.file_dimensions[0].count('x') != 1:
+    if args.file_dimensions.count('x') != 1:
         raise ValueError(f'Image must have two dimensions but had: {args.file_dimensions}')
-    w_min, h_min = tuple(int(x) for x in args.file_dimensions[0].split('x'))
+    w_min, h_min = tuple(int(x) for x in args.file_dimensions.split('x'))
 
     overwrite = args.overwrite
     verbose = args.verbose
 
-    print(clean_dataset(input_path, output_path, logfile))
+    print(clean_dataset(input_dir, output_dir, logfile))
