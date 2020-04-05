@@ -6,12 +6,13 @@ from typing import List
 
 import cv2
 import numpy as np
+from joblib import hash
 # to measure execution time
 from tqdm import tqdm
 
 
 def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
-    __check_paths_params(input_dir, logfile, output_dir)
+    __check_paths_params(input_dir, logfile, output_dir, overwrite=True)
 
     files: List[str] = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
     return __process_files(files, input_dir, logfile)
@@ -41,13 +42,20 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
     def __write_to_log(path: Path, error_code: int):
         log.write(f'{path.relative_to(input_dir)};{error_code}\n')
 
+    valid = 0
+    hashes = dict()
+    # ignore directories
+    paths = list(
+        filter(
+            lambda path: not path.is_dir(),
+            map(
+                lambda filename: Path(filename),
+                files
+            )
+        )
+    )
     with open(logfile, 'w') as log:
-        hashes = dict()
-        valid = 0
-        for filename in tqdm(files):
-            if (path := Path(filename)).is_dir():
-                # ignore directories
-                continue
+        for path in tqdm(paths, desc='Checking images'):
             if not __valid_extension(path):
                 __write_to_log(path, 1)
                 continue
@@ -56,7 +64,7 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
                 continue
 
             # file exists, is small enough and might be an image
-            if (img := cv2.imread(filename, cv2.IMREAD_GRAYSCALE)) is None:
+            if (img := cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)) is None:
                 __write_to_log(path, 3)
                 continue
 
@@ -86,9 +94,12 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
                 if verbose:
                     print(f'Found new file: {path}')
 
-                hashes[h] = path
                 valid += 1
-                shutil.copy(path, Path('output', '%06d.jpg' % valid))
+                hashes[h] = (valid, path)
+
+        # batch copy at the end
+        for (id, path) in tqdm(hashes.values(), desc='Copying images'):
+            shutil.copy(path, Path('output', '%06d.jpg' % id))
     return valid
 
 
