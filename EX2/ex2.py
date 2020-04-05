@@ -73,9 +73,6 @@ def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
                 continue
 
             img = np.asarray(img)
-            # set array to not writable; may speed up some calculations
-            img.flags['WRITEABLE'] = False
-
             # assuming we only have gray-scale images we just have to check if all values are equal
             # computationally much faster than np.var(img) == 0
             # if np.var(img) == 0:
