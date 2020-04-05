@@ -6,6 +6,8 @@ from typing import List
 
 import cv2
 import numpy as np
+# to measure execution time
+from tqdm import tqdm
 
 
 def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
@@ -39,43 +41,53 @@ def __process_files(files: List[str], input_dir: str, logfile: str) -> int:
     def __write_to_log(path: Path, error_code: int):
         log.write(f'{path.relative_to(input_dir)};{error_code}\n')
 
-    hashes = set()
-    valid = 0
     with open(logfile, 'w') as log:
-        for filename in files:
+        hashes = dict()
+        valid = 0
+        for filename in tqdm(files):
             if (path := Path(filename)).is_dir():
                 # ignore directories
                 continue
             if not __valid_extension(path):
                 __write_to_log(path, 1)
                 continue
-            if not path.stat().st_size <= max_file_size:
+            if not path.stat().st_size >= min_file_size:
                 __write_to_log(path, 2)
                 continue
 
             # file exists, is small enough and might be an image
-            read_color = cv2.IMREAD_COLOR if len(max_dimensions) == 3 else cv2.IMREAD_GRAYSCALE
-            # read file as grayscale ->
-            if (img := cv2.imread(filename, read_color)) is None:
+            if (img := cv2.imread(filename, cv2.IMREAD_GRAYSCALE)) is None:
                 __write_to_log(path, 3)
                 continue
-            if np.var(np.ravel(img)) == 0:
+
+            # set array to not writable; may speed up some calculations
+            img.flags['WRITEABLE'] = False
+
+            # assuming we only have gray-scale images we just have to check if all values are equal
+            # computationally much faster than np.var(img) == 0
+            if np.all(img == img[0, 0]):
                 __write_to_log(path, 4)
                 continue
-            if len(shape := img.shape) != len(max_dimensions) or shape > max_dimensions:
+
+            # not too beautiful, but it does the trick
+            w, h = img.shape
+            if len(img.shape) != 2 or w < w_min or h < h_min:
                 __write_to_log(path, 5)
                 continue
 
             # file is valid in every way
             if (h := hash(bytes(img))) in hashes:
                 __write_to_log(path, 6)
+                if verbose:
+                    print(f'{path} was duplicate of {hashes[h]}')
                 continue
             else:
                 # new file found
-                print(f'Found new file: {path}')
-                hashes.add(h)
-                valid += 1
+                if verbose:
+                    print(f'Found new file: {path}')
 
+                hashes[h] = path
+                valid += 1
                 shutil.copy(path, Path('output', '%06d.jpg' % valid))
     return valid
 
@@ -106,10 +118,13 @@ if __name__ == '__main__':
     parser.add_argument('-file_types', nargs='+', type=str, required=False, default=['jpg', 'jpeg'],
                         help=f'Allowed file extensions. Defaults to {["jpg", "jpeg"]}')
     parser.add_argument('-file_size', nargs=1, type=int, required=False, default=[10],
-                        help='Maximum file size in kB. Defaults to 10.')
+                        help='Minimum file size in kB. Defaults to 10.')
     parser.add_argument('-file_dimensions', nargs=1, type=str, required=False,
                         default=['100x100'],
-                        help='Maximum dimensions for image (H, W[, D]). Defaults to "100x100".')
+                        help='Minimum dimensions for image (H, W). Defaults to "100x100".')
+    parser.add_argument('--verbose', const=True, action='store_const', default=False,
+                        help='Increase verbosity of output.')
+
     args = parser.parse_args()
 
     # positional arguments
@@ -121,11 +136,13 @@ if __name__ == '__main__':
     file_types = set(args.file_types)
 
     # in kB
-    max_file_size = args.file_size[0] * 1000
+    min_file_size = args.file_size[0] * 1000
 
     # convert to integer
-    max_dimensions = tuple(int(x) for x in args.file_dimensions[0].split('x'))
-    if not 2 <= len(max_dimensions) <= 3:
-        raise ValueError(f'Image must have two or three dimensions but had: {args.file_dimensions}')
+    if args.file_dimensions[0].count('x') != 1:
+        raise ValueError(f'Image must have two dimensions but had: {args.file_dimensions}')
+    w_min, h_min = tuple(int(x) for x in args.file_dimensions[0].split('x'))
+
+    verbose = args.verbose
 
     print(clean_dataset(input_path, output_path, logfile))
