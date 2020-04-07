@@ -5,9 +5,9 @@ if [[ "$1" == "--help" ]]; then
   exit 0
 fi
 
-mkdir submissions
+mkdir -p submissions
 
-PREFIX="\"\"\"$(basename $1)
+PREFIX="\"\"\"ex$4.py
 Author: $2
 Matr.Nr.: $3
 Exercise $4
@@ -17,4 +17,4 @@ PYTHON_CONTENT=$(cat $1)
 CONTENT="$PREFIX$PYTHON_CONTENT"
 
 echo "$CONTENT"
-echo "$CONTENT" > "submissions/$(basename $1)"
+echo "$CONTENT" > "submissions/ex$4.py"
