@@ -101,7 +101,7 @@ def _valid_extension(path: Path) -> bool:
 
 
 _min_file_size = 10_000
-_file_types = ['jpg', 'jpeg']
+_file_types = {'jpg', 'jpeg'}
 _w_min, _h_min = 100, 100
 _overwrite, _verbose = True, False
 
@@ -141,7 +141,7 @@ if __name__ == '_main_':
     _file_types = set(args.file_types)
 
     # in kB
-    _min_file_size = args.file_size * 1000
+    _min_file_size = args.file_size * 1_000
 
     # convert to integer
     if args.file_dimensions.count('x') != 1:
