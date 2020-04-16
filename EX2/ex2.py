@@ -13,7 +13,7 @@ from tqdm import tqdm
 def ex2(input_dir: str, output_dir: str, logfile: str) -> int:
     _check_paths_params(input_dir, logfile, output_dir)
 
-    files: List[str] = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
+    files = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
     # ignore directories
     paths = [p for path in files if not (p := Path(path)).is_dir()]
     return _process_files(paths, input_dir, output_dir, logfile)
@@ -47,30 +47,33 @@ def _process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: 
             log.write(f'{path.relative_to(input_dir)};{error_code}\n')
 
         for path in tqdm(paths, desc='Checking images'):
-            if not _valid_extension(path):
+            # check if extension (including leading '.') is valid
+            if not path.suffix[1:].lower() in _file_types:
                 _write_to_log(path, 1)
                 continue
-            if not path.stat().st_size >= _min_file_size:
+            if path.stat().st_size < _min_file_size:
                 _write_to_log(path, 2)
                 continue
 
             # file exists, is small enough and might be an image
             try:
-                # experimentally faster than cv2.imread
                 img = Image.open(str(path))
             except (FileNotFoundError, ValueError, UnidentifiedImageError) as e:
                 _write_to_log(path, 3)
+                if _verbose:
+                    print(e)
                 continue
 
             img = np.asarray(img)
+            # check if image has more than one grayscale value
+
             # assuming we only have gray-scale images we just have to check if all values are equal
             # computationally much faster than np.var(img) == 0
-            # if np.var(img) == 0:
             if np.all(img == img[0, 0]):
                 _write_to_log(path, 4)
                 continue
 
-            # not too beautiful, but it does the trick
+            # check if (W, H) big enough and image has exactly two dimensions
             if len(img.shape) != 2 or img.shape[0] < _w_min or img.shape[1] < _h_min:
                 _write_to_log(path, 5)
                 continue
@@ -81,23 +84,16 @@ def _process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: 
                 if _verbose:
                     print(f"'{path}' duplicate of {hashes[h]}")
                 continue
-
             # new file found
             else:
                 if _verbose:
                     print(f"New file: '{path}'")
                 hashes[h] = (path, len(hashes) + 1)
 
-    # batch copy at the end
-    for (path, num) in tqdm(hashes.values(), desc='Copying images'):
+    # batch copy all valid files
+    for path, num in tqdm(hashes.values(), desc='Copying images'):
         shutil.copy(path, Path(output_dir, f'{num:06d}.jpg'))
     return len(hashes)
-
-
-def _valid_extension(path: Path) -> bool:
-    # match case insensitively
-    file_name = str(path).lower()
-    return any(file_name.endswith(ext.lower()) for ext in _file_types)
 
 
 _min_file_size = 10_000
