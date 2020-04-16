@@ -16,3 +16,6 @@ EX3/dataset_part_*/
 
 # submission folder
 submissions/
+
+# unittests for EX2
+unittests/

@@ -11,7 +11,7 @@ from joblib import hash
 from tqdm import tqdm
 
 
-def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
+def ex2(input_dir: str, output_dir: str, logfile: str) -> int:
     __check_paths_params(input_dir, logfile, output_dir)
 
     files: List[str] = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
@@ -25,7 +25,7 @@ def clean_dataset(input_dir: str, output_dir: str, logfile: str) -> int:
             )
         )
     )
-    return __process_files(paths, input_dir, logfile)
+    return __process_files(paths, input_dir, output_dir, logfile)
 
 
 def __check_paths_params(input_dir: str, logfile: str, output_dir: str):
@@ -48,14 +48,13 @@ def __check_paths_params(input_dir: str, logfile: str, output_dir: str):
     path.mkdir(parents=True, exist_ok=True)
 
 
-def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
-    def __write_to_log(path: Path, error_code: int):
-        log.write(f'{path.relative_to(input_dir)};{error_code}\n')
-
-    valid = 0
+def __process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: str) -> int:
     hashes = dict()
 
     with open(logfile, 'w') as log:
+        def __write_to_log(path: Path, error_code: int):
+            log.write(f'{path.relative_to(input_dir)};{error_code}\n')
+
         for path in tqdm(paths, desc='Checking images'):
             if not __valid_extension(path):
                 __write_to_log(path, 1)
@@ -96,13 +95,12 @@ def __process_files(paths: List[Path], input_dir: str, logfile: str) -> int:
             else:
                 if __verbose:
                     print(f"New file: '{path}'")
-                valid += 1
-                hashes[h] = (path, valid)
+                hashes[h] = (path, len(hashes) + 1)
 
-        # batch copy at the end
-        for (path, num) in tqdm(hashes.values(), desc='Copying images'):
-            shutil.copy(path, Path('output', f'{num:06d}.jpg'))
-    return valid
+    # batch copy at the end
+    for (path, num) in tqdm(hashes.values(), desc='Copying images'):
+        shutil.copy(path, Path(output_dir, f'{num:06d}.jpg'))
+    return len(hashes)
 
 
 def __valid_extension(path: Path) -> bool:
@@ -133,13 +131,13 @@ if __name__ == '__main__':
                         help='Relative or absolute path to logfile. Path must point to a file. The '
                              'file does not have to exist and will be created (contents will be '
                              'overwritten)')
-    parser.add_argument('-file_types', nargs='+', type=str, required=False, default=['jpg', 'jpeg'],
-                        help=f'Allowed file extensions. Defaults to {["jpg", "jpeg"]}')
+    parser.add_argument('-file_types', nargs='+', type=str, required=False, default=__file_types,
+                        help=f'Allowed file extensions. Defaults to {__file_types}')
     parser.add_argument('-file_size', type=int, required=False, default=__min_file_size / 1_000,
-                        help='Minimum file size in kB. Defaults to 10.')
+                        help=f'Minimum file size in kB. Defaults to {__min_file_size / 1_000}.')
     parser.add_argument('-file_dimensions', type=str, required=False,
                         default=f'{__w_min}x{__h_min}',
-                        help='Minimum dimensions for image (H, W). Defaults to "100x100".')
+                        help=f'Minimum dimensions for image (H, W). Defaults to "{__w_min}x{__h_min}".')
     parser.add_argument('--overwrite', const=True, action='store_const', default=__overwrite,
                         help='Overwrite output directory.')
     parser.add_argument('--verbose', const=True, action='store_const', default=__verbose,
@@ -166,4 +164,4 @@ if __name__ == '__main__':
     __overwrite = args.overwrite
     __verbose = args.verbose
 
-    print(clean_dataset(input_dir, output_dir, logfile))
+    print(ex2(input_dir, output_dir, logfile))
