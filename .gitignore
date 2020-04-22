@@ -18,4 +18,4 @@ EX3/dataset_part_*/
 submissions/
 
 # unittests for EX2
-unittests/
+unittests_ex*/

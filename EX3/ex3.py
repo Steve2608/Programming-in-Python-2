@@ -1,7 +1,7 @@
 import argparse
 from glob import iglob
 from pathlib import Path
-from typing import Tuple, Generator
+from typing import Tuple, Generator, Union, Type
 
 import numpy as np
 from PIL import Image
@@ -15,18 +15,19 @@ class ImageNormalizer:
             raise ValueError('Input directory was null or empty!')
         if not (path := Path(input_dir)).is_dir():
             raise ValueError(f"Input path was not a directory: '{input_dir}'")
-        self.file_names = list(sorted(iglob(f'{str(path)}/*.jpg')))
+        self._paths = [Path(path) for path in sorted(iglob(f'{str(path)}/*.jpg'))]
+        self.file_names = [path.name for path in self._paths]
 
     @staticmethod
-    def read_image_as_array(file_name: str) -> np.ndarray:
+    def read_image_as_array(file_name: str, dtype: Type[np.float_]) -> np.ndarray:
         # convert np.unit8 to np.float64 explicitly; calculations should do that anyways
         # if there is an exception, just raise it
-        return np.asarray(Image.open(file_name), dtype=float)
+        return np.asarray(Image.open(file_name), dtype=dtype)
 
     def get_stats(self) -> Tuple[np.ndarray, np.ndarray]:
         means, stds = [], []
-        for file_name in tqdm(self.file_names, desc='means/stds of files'):
-            img = ImageNormalizer.read_image_as_array(file_name)
+        for file_name in tqdm(self._paths, desc='means/stds of files'):
+            img = ImageNormalizer.read_image_as_array(file_name, np.float64)
             means.append(img.mean())
             stds.append(img.std())
 
@@ -37,8 +38,8 @@ class ImageNormalizer:
         return self.get_stats()
 
     def get_images(self) -> Generator[np.ndarray, None, None]:
-        for file_name in tqdm(self.file_names, desc='Normalizing images'):
-            img = ImageNormalizer.read_image_as_array(file_name)
+        for file_name in tqdm(self._paths, desc='Normalizing images'):
+            img = ImageNormalizer.read_image_as_array(file_name, np.float32)
             # scaled = img / 255 changed in 04-04-2020 assignment
             # centered = scaled - scaled.mean()
             centered = img - img.mean()
@@ -52,7 +53,7 @@ class ImageNormalizer:
     __iter__ = get_images
 
     def __str__(self):
-        return self.__class__.__name__ + f'({", ".join(self.file_names)})'
+        return self.__class__.__name__ + f'({", ".join(self._paths)})'
 
     __repr__ = __str__
 
