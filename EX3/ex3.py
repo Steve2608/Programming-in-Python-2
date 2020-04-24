@@ -1,7 +1,7 @@
 import argparse
 from glob import iglob
 from pathlib import Path
-from typing import Tuple, Generator, Union, Type
+from typing import Tuple, Type, Iterator, List
 
 import numpy as np
 from PIL import Image
@@ -15,8 +15,14 @@ class ImageNormalizer:
             raise ValueError('Input directory was null or empty!')
         if not (path := Path(input_dir)).is_dir():
             raise ValueError(f"Input path was not a directory: '{input_dir}'")
-        self._paths = [Path(path) for path in sorted(iglob(f'{str(path)}/*.jpg'))]
-        self.file_names = [path.name for path in self._paths]
+
+        abs_paths = sorted(iglob(f'{str(path)}/*.jpg'))
+        self._paths = [path for name in abs_paths if not (path := Path(name)).is_dir()]
+
+    @property
+    def file_names(self) -> List[str]:
+        # disable writing access in list
+        return [path.name for path in self._paths]
 
     @staticmethod
     def read_image_as_array(file_name: str, dtype: Type[np.float_]) -> np.ndarray:
@@ -34,10 +40,10 @@ class ImageNormalizer:
         return np.asarray(means), np.asarray(stds)
 
     @property
-    def stats(self):
+    def stats(self) -> Tuple[np.ndarray, np.ndarray]:
         return self.get_stats()
 
-    def get_images(self) -> Generator[np.ndarray, None, None]:
+    def get_images(self) -> Iterator[np.ndarray]:
         for file_name in tqdm(self._paths, desc='Normalizing images'):
             img = ImageNormalizer.read_image_as_array(file_name, np.float32)
             # scaled = img / 255 changed in 04-04-2020 assignment
@@ -46,7 +52,7 @@ class ImageNormalizer:
             yield centered / centered.std()
 
     @property
-    def images(self):
+    def images(self) -> Iterator[np.ndarray]:
         return self.get_images()
 
     # make class itself iterable as well; why not?
