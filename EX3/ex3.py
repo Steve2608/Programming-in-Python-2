@@ -1,7 +1,7 @@
 import argparse
 from glob import iglob
 from pathlib import Path
-from typing import Tuple, Type, Iterator, List
+from typing import Tuple, Type, Iterator, List, Union
 
 import numpy as np
 from PIL import Image
@@ -25,15 +25,13 @@ class ImageNormalizer:
         return [path.name for path in self._paths]
 
     @staticmethod
-    def read_image_as_array(file_name: str, dtype: Type[np.float_]) -> np.ndarray:
-        # convert np.unit8 to np.float64 explicitly; calculations should do that anyways
-        # if there is an exception, just raise it
-        return np.asarray(Image.open(file_name), dtype=dtype)
+    def read_image_as_array(path: Union[Path, str], dtype: Type[np.float_]) -> np.ndarray:
+        return np.asarray(Image.open(path), dtype=dtype)
 
     def get_stats(self) -> Tuple[np.ndarray, np.ndarray]:
         means, stds = [], []
-        for file_name in tqdm(self._paths, desc='means/stds of files'):
-            img = ImageNormalizer.read_image_as_array(file_name, np.float64)
+        for path in tqdm(self._paths, desc='means/stds of files'):
+            img = ImageNormalizer.read_image_as_array(path, np.float64)
             means.append(img.mean())
             stds.append(img.std())
 
@@ -44,10 +42,8 @@ class ImageNormalizer:
         return self.get_stats()
 
     def get_images(self) -> Iterator[np.ndarray]:
-        for file_name in tqdm(self._paths, desc='Normalizing images'):
-            img = ImageNormalizer.read_image_as_array(file_name, np.float32)
-            # scaled = img / 255 changed in 04-04-2020 assignment
-            # centered = scaled - scaled.mean()
+        for path in tqdm(self._paths, desc='Normalizing images'):
+            img = ImageNormalizer.read_image_as_array(path, np.float32)
             centered = img - img.mean()
             yield centered / centered.std()
 
@@ -55,11 +51,8 @@ class ImageNormalizer:
     def images(self) -> Iterator[np.ndarray]:
         return self.get_images()
 
-    # make class itself iterable as well; why not?
-    __iter__ = get_images
-
     def __str__(self):
-        return self.__class__.__name__ + f'({", ".join(self._paths)})'
+        return self.__class__.__name__ + f'({", ".join(str(path) for path in self._paths)})'
 
     __repr__ = __str__
 
@@ -76,5 +69,5 @@ if __name__ == '__main__':
 
     print('means/stds:', *imag_norm.stats, sep='\n', end='\n\n')
 
-    print('sum(means):', sum([imag.mean() for imag in imag_norm]))
-    print('mean(vars):', np.mean([imag.var() for imag in imag_norm]))
+    print('sum(means):', sum([imag.mean() for imag in imag_norm.images]))
+    print('mean(vars):', np.mean([imag.var() for imag in imag_norm.images]))
