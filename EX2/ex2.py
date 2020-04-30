@@ -1,5 +1,4 @@
 import argparse
-import glob
 import shutil
 from pathlib import Path
 from typing import List
@@ -13,9 +12,10 @@ from tqdm import tqdm
 def ex2(input_dir: str, output_dir: str, logfile: str) -> int:
     _check_paths_params(input_dir, logfile, output_dir)
 
-    files = sorted(glob.iglob(f'{Path(input_dir)}/**', recursive=True))
+    files = sorted(Path(input_dir).rglob('*'), key=str)
+
     # ignore directories
-    paths = [p for path in files if not (p := Path(path)).is_dir()]
+    paths = [path for path in files if not path.is_dir()]
     return _process_files(paths, input_dir, output_dir, logfile)
 
 

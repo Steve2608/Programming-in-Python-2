@@ -17,7 +17,7 @@ class ImageNormalizer:
 
         all_paths = path.glob('*.jpg')
         files_only = filter(lambda p: p.is_file(), all_paths)
-        self._paths = sorted(files_only)
+        self._paths = sorted(files_only, key=str)
 
     @property
     def file_names(self) -> List[str]:
