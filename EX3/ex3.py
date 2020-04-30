@@ -17,7 +17,7 @@ class ImageNormalizer:
 
         all_paths = path.glob('*.jpg')
         files_only = filter(lambda p: p.is_file(), all_paths)
-        self._paths = list(sorted(files_only))
+        self._paths = sorted(files_only)
 
     @property
     def file_names(self) -> List[str]:
@@ -52,7 +52,7 @@ class ImageNormalizer:
         return self.get_images()
 
     def __str__(self):
-        return self.__class__.__name__ + ", ".join(map(str, self._paths))
+        return self.__class__.__name__ + ', '.join(map(str, self._paths))
 
     __repr__ = __str__
 
