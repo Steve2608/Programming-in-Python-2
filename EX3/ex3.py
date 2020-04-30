@@ -1,5 +1,4 @@
 import argparse
-from glob import iglob
 from pathlib import Path
 from typing import Tuple, Type, Iterator, List, Union
 
@@ -16,8 +15,9 @@ class ImageNormalizer:
         if not (path := Path(input_dir)).is_dir():
             raise ValueError(f"Input path was not a directory: '{input_dir}'")
 
-        abs_paths = sorted(iglob(f'{str(path)}/*.jpg'))
-        self._paths = [path for name in abs_paths if not (path := Path(name)).is_dir()]
+        all_paths = path.glob('*.jpg')
+        files_only = filter(lambda p: p.is_file(), all_paths)
+        self._paths = sorted(files_only)
 
     @property
     def file_names(self) -> List[str]:
@@ -52,7 +52,7 @@ class ImageNormalizer:
         return self.get_images()
 
     def __str__(self):
-        return self.__class__.__name__ + f'({", ".join(str(path) for path in self._paths)})'
+        return self.__class__.__name__ + ', '.join(map(str, self._paths))
 
     __repr__ = __str__
 
