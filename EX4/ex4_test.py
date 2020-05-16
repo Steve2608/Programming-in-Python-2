@@ -10,7 +10,7 @@ def load_image(path: str):
 
 
 def show_array(array: np.ndarray, title: str):
-    fig = px.imshow(array)
+    fig = px.imshow(array, color_continuous_scale='gray')
     fig.update_layout(title_text=title)
     fig.show()
 
