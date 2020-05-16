@@ -18,7 +18,7 @@ def show_array(array: np.ndarray, title: str):
 if __name__ == '__main__':
     img = load_image('Desktop.png')
     crop_size = (31, 61)
-    crop_center = (300, 200)
+    crop_center = (300, 280)
     image, crop_array, target_array = ex4(img, crop_size, crop_center, transpose=True)
 
     show_array(image, f'crop_center={crop_center}, crop_size={crop_size}')
