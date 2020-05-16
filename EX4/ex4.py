@@ -4,13 +4,17 @@ import numpy as np
 
 
 def ex4(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int],
-        copy: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        copy: bool = True, transpose: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     _check_input(crop_center, crop_size, image_array)
 
     image = image_array.copy() if copy else image_array
 
-    x, y = crop_center
-    dx, dy = crop_size
+    if transpose:
+        y, x = crop_center
+        dy, dx = crop_size
+    else:
+        x, y = crop_center
+        dx, dy = crop_size
     # integer division
     dx, dy = dx // 2, dy // 2
 
