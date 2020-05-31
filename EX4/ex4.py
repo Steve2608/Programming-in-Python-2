@@ -62,6 +62,6 @@ def _check_border_distance(image_array: np.ndarray, crop_size: Tuple[int, int],
 
     dx, dy = dx // 2, dy // 2
     dim_x, dim_y = image_array.shape
-    if any(x < distance for x in [x - dx, dim_x - (x + dx), y - dy, dim_y - (y + dy)]):
+    if any(x < distance for x in [x - dx, dim_x - 1 - (x + dx), y - dy, dim_y - 1 - (y + dy)]):
         raise ValueError(
             f'Using crop_center and crop_size, the distance to the border is < {distance}!')
