@@ -11,7 +11,8 @@ class ImageNormalizer:
     def __init__(self, input_dir: str):
         if input_dir is None or len(input_dir) == 0:
             raise ValueError('Input directory was null or empty!')
-        if not (path := Path(input_dir)).is_dir():
+        path = Path(input_dir)
+        if not path.is_dir():
             raise ValueError(f"Input path was not a directory: '{input_dir}'")
 
         all_paths = path.glob('*.jpg')

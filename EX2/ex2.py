@@ -24,7 +24,8 @@ def _check_paths_params(input_dir: str, logfile: str, output_dir: str):
             raise ValueError(f"Path must not be null or empty: {path}")
 
     _check_path(input_dir)
-    if not (input_path := Path(input_dir)).exists():
+    input_path = Path(input_dir)
+    if not input_path.exists():
         raise ValueError(f"Input path '{input_dir}' does not exist!")
     if not input_path.is_dir():
         raise ValueError(f"Input path '{input_dir}' is not a directory!")
@@ -32,7 +33,8 @@ def _check_paths_params(input_dir: str, logfile: str, output_dir: str):
     _check_path(logfile)
 
     # optionally overwrite path and all subdirectories
-    if (path := Path(output_dir)).exists() and _overwrite:
+    path = Path(output_dir)
+    if path.exists() and _overwrite:
         shutil.rmtree(path, ignore_errors=True)
 
     path.mkdir(parents=True, exist_ok=True)
@@ -78,7 +80,8 @@ def _process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: 
                 continue
 
             # file is valid in every way
-            if (h := hash(img)) in hashes:
+            h = hash(img)
+            if h in hashes:
                 _write_to_log(path, 6)
                 if _verbose:
                     print(f"'{path}' duplicate of {hashes[h]}")
