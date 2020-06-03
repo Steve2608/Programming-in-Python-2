@@ -4,17 +4,13 @@ import numpy as np
 
 
 def ex4(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int], *,
-        copy: bool = True, transpose: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    _check_input(image_array, crop_size, crop_center, transpose)
+        copy: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    _check_input(image_array, crop_size, crop_center)
 
     image = image_array.copy() if copy else image_array
 
-    if transpose:
-        y, x = crop_center
-        dy, dx = crop_size
-    else:
-        x, y = crop_center
-        dx, dy = crop_size
+    x, y = crop_center
+    dx, dy = crop_size
     # integer division
     dx, dy = dx // 2, dy // 2
 
@@ -31,8 +27,8 @@ def ex4(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[
     return image, crop_array, target_array
 
 
-def _check_input(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int],
-                 transpose: bool) -> None:
+def _check_input(image_array: np.ndarray, crop_size: Tuple[int, int],
+                 crop_center: Tuple[int, int]) -> None:
     if not isinstance(image_array, np.ndarray):
         raise ValueError(f'image_array is not a numpy array instance! (was {type(image_array)})')
     if len(crop_size) != 2:
@@ -48,17 +44,13 @@ def _check_input(image_array: np.ndarray, crop_size: Tuple[int, int], crop_cente
 
     if any(d % 2 == 0 for d in crop_size):
         raise ValueError(f'Not all values in crop_size are odd: ({crop_size})')
-    _check_border_distance(image_array, crop_size, crop_center, transpose, distance=20)
+    _check_border_distance(image_array, crop_size, crop_center, distance=20)
 
 
 def _check_border_distance(image_array: np.ndarray, crop_size: Tuple[int, int],
-                           crop_center: Tuple[int, int], transpose: bool, *, distance: int) -> None:
-    if transpose:
-        y, x = crop_center
-        dy, dx = crop_size
-    else:
-        x, y = crop_center
-        dx, dy = crop_size
+                           crop_center: Tuple[int, int], *, distance: int) -> None:
+    x, y = crop_center
+    dx, dy = crop_size
 
     dx, dy = dx // 2, dy // 2
     dim_x, dim_y = image_array.shape
