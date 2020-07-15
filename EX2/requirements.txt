@@ -1,4 +1,4 @@
-numpy==1.18.5
-tqdm==4.46.1
-joblib==0.15.1
-Pillow==7.1.2
+numpy==1.19.0
+tqdm==4.47.0
+joblib==0.16.0
+Pillow==7.2.0
