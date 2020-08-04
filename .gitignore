@@ -14,8 +14,15 @@ EX2/logfile_part_*.txt
 EX3/input/
 EX3/dataset_part_*/
 
+# files for ex5
+EX5/challenge_testset/
+EX5/data/
+EX5/example_testset/
+EX5/example_project.zip
+
 # submission folder
 submissions/
 
-# unittests for EX2
+# unittests
 unittests_ex*/
+
