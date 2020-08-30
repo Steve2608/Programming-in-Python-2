@@ -11,7 +11,7 @@ from torchvision.transforms import transforms as tfs
 from torchvision.transforms.functional import resize
 
 # ensure somewhat consistent executions
-np.random.seed(0)
+# np.random.seed(0)
 
 
 class CroppedImage(NamedTuple):
