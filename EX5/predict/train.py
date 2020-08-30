@@ -91,8 +91,8 @@ def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
     print(test_loss, val_loss)
     print('Finished training process.')
 
-    timestamp = datetime.now().strftime("%Y%m%d%-H%M%S")
-    torch.save(model.state_dict(), model_path / f'model_{timestamp}.pt')
+    timestamp = datetime.now().strftime("%Y%m%d%-%H%M%S")
+    torch.save(model.state_dict(), model_path / f'model_{n_epochs}_{timestamp}.pt')
 
 
 if __name__ == '__main__':

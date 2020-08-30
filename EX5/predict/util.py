@@ -14,18 +14,6 @@ def load_config(path: Union[Path, str]):
         return json.load(f)
 
 
-def store_best_model(epoch: int, model, result_root: Path, best_val_loss: float,
-                     current_val_loss=None):
-    torch.save(model.state_dict(), result_root / model_folder / f'model_{epoch}.pt')
-    if current_val_loss is None:
-        torch.save(model.state_dict(), result_root / model_folder / best_model_name)
-        return best_val_loss
-    if current_val_loss < best_val_loss:
-        torch.save(model.state_dict(), result_root / model_folder / best_model_name)
-        return current_val_loss
-    return best_val_loss
-
-
 def plot_samples(epoch: int, model: torch.nn.Module, sample_batch, sample_targets,
                  writer: SummaryWriter):
     model.eval()
