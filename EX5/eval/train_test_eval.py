@@ -28,7 +28,7 @@ def _eval(loader: DataLoader, model: nn.Module, optimizer=None):
                 loss.backward()
                 optimizer.step()
             total_loss += loss.detach().cpu().item()
-    return total_loss
+    return total_loss / len(loader)
 
 
 def train_eval(train_loader: DataLoader, model: nn.Module, optimizer):
