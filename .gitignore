@@ -28,3 +28,6 @@ unittests_ex*/
 
 /example_project/results/
 /example_project/cifar10/
+
+# results and tensorboard stuff
+EX5/results/

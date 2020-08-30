@@ -1,0 +1,18 @@
+{
+  "device": "cuda:0",
+  "n_workers": 4,
+  "batch_size": 32,
+  "n_epochs": 2,
+  "insight_interval": 1,
+  "train_params": {
+    "lr": 1e-3,
+    "weight_decay": 1e-5
+  },
+  "network_config": {
+    "n_hidden": 4,
+    "n_in_chn": 2,
+    "n_kernels": 32,
+    "kernel_size": 7,
+    "activation": "relu"
+  }
+}
