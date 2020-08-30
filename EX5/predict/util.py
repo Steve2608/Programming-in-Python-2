@@ -26,22 +26,6 @@ def store_best_model(epoch: int, model, result_root: Path, best_val_loss: float,
     return best_val_loss
 
 
-def log_insights(epoch: int, model: torch.nn.Module, sample_input, sample_targets,
-                 writer: SummaryWriter):
-    print('Generating Insights...')
-    for i, param in enumerate(model.parameters()):
-        writer.add_scalar(tag=f'val/l2_norm_{i}',
-                          scalar_value=param.detach().cpu().norm(2).item(),
-                          global_step=epoch)
-        writer.add_histogram(tag=f'val/param_{i}',
-                             values=param.detach().cpu(),
-                             global_step=epoch)
-        writer.add_histogram(tag=f'val/gradient_{i}',
-                             values=param.grad.detach().cpu(),
-                             global_step=epoch)
-    plot_samples(epoch, model, sample_input, sample_targets, writer)
-
-
 def plot_samples(epoch: int, model: torch.nn.Module, sample_batch, sample_targets,
                  writer: SummaryWriter):
     model.eval()

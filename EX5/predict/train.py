@@ -2,6 +2,7 @@ import shutil
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Union, Tuple
+from datetime import datetime
 
 import torch
 from torch.optim import Adam
@@ -11,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 import eval.train_test_eval as tte
 from config import model_folder, tb_folder
 from load.loader import SimpleImageDataset, train_test_split, CroppedImageDataset, custom_collate_fn
-from predict.util import load_config, log_insights
+from predict.util import load_config, plot_samples
 from models.simpleCNN import SimpleCNN
 
 
@@ -81,7 +82,7 @@ def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
         writer.add_scalar(tag='val/loss', scalar_value=val_loss, global_step=epoch)
 
         if epoch % insight_interval == 0:
-            log_insights(epoch, model, sample_input, sample_targets, writer)
+            plot_samples(epoch, model, sample_input, sample_targets, writer)
 
     print('Best model evaluation...')
     test_loss = tte.test_eval(test, model)
@@ -89,6 +90,9 @@ def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
 
     print(test_loss, val_loss)
     print('Finished training process.')
+
+    timestamp = datetime.now().strftime("%Y%m%d%-H%M%S")
+    torch.save(model.state_dict(), model_path / f'model_{timestamp}.pt')
 
 
 if __name__ == '__main__':
