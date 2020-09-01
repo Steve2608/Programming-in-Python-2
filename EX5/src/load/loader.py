@@ -67,7 +67,7 @@ class RandomResize:
 class RandomCrop(Callable):
     def __init__(self,
                  # end exclusive
-                 crop_range: Tuple[int, int] = (_MIN_CROP_SIZE, _MIN_CROP_SIZE + 1),
+                 crop_range: Tuple[int, int] = (_MIN_CROP_SIZE, _MAX_CROP_SIZE + 1),
                  min_border: int = _MIN_BORDER_DISTANCE):
         self.crop_range = crop_range
         self.min_border = min_border
