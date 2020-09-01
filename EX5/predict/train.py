@@ -1,8 +1,8 @@
 import shutil
 from argparse import ArgumentParser
+from datetime import datetime
 from pathlib import Path
 from typing import Union, Tuple
-from datetime import datetime
 
 import torch
 from torch.optim import Adam
@@ -10,24 +10,40 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 import eval.train_test_eval as tte
-from config import model_folder, tb_folder
-from load.loader import SimpleImageDataset, train_test_split, CroppedImageDataset, custom_collate_fn
-from predict.util import load_config, plot_samples
+from load.loader import train_test_split, CroppedImageDataset, custom_collate_fn
 from models.simpleCNN import SimpleCNN
+from predict.util import load_config
+from vis.plot import plot
+
+
+def _plot_samples(epoch: int, model: torch.nn.Module, sample_batch, sample_targets,
+                 writer: SummaryWriter):
+    model.eval()
+    sample_batch = sample_batch.to('cuda:0')
+    output, masks = model(sample_batch)
+    sample_prediction = [output[i, 0, masks[i]] for i in range(len(output))]
+
+    plot(
+        sample_batch.cpu()[:, 0] * 255,
+        sample_targets * 255,
+        sample_prediction,
+        writer,
+        epoch
+    )
 
 
 def _setup_out_path(result_path: Union[str, Path]) -> Tuple[Path, Path, Path]:
-    result = Path(result_path)
-    result.mkdir(exist_ok=True)
+    result_path = Path(result_path)
+    result_path.mkdir(exist_ok=True)
 
-    tb_dir = result / tb_folder
-    shutil.rmtree(tb_dir, ignore_errors=True)
-    tb_dir.mkdir(exist_ok=True)
+    tb_path = result_path / 'tensorboard'
+    shutil.rmtree(tb_path, ignore_errors=True)
+    tb_path.mkdir(exist_ok=True)
 
-    model_dir = result / model_folder
-    model_dir.mkdir(exist_ok=True)
+    model_path = result_path / 'models'
+    model_path.mkdir(exist_ok=True)
 
-    return result, tb_dir, model_dir
+    return result_path, tb_path, model_path
 
 
 def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
@@ -46,12 +62,11 @@ def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
     device = torch.device(config['device'])
     insight_interval = config['insight_interval']
 
+    # dataset
+    ds = CroppedImageDataset(dataset_path)
+
     # loaders
-    ds = SimpleImageDataset(dataset_path)
     train, val, test = train_test_split(ds, train=0.75, val=0.15, test=0.1)
-    train, val, test = CroppedImageDataset(train), \
-                       CroppedImageDataset(val), \
-                       CroppedImageDataset(test)
     train = DataLoader(train, batch_size=batch_size, num_workers=n_workers,
                        collate_fn=custom_collate_fn)
     val = DataLoader(val, batch_size=batch_size, num_workers=n_workers,
@@ -77,16 +92,16 @@ def main(dataset_path: Union[str, Path], config_path: Union[str, Path],
         print(f'train/loss: {train_loss}')
         writer.add_scalar(tag='train/loss', scalar_value=train_loss, global_step=epoch)
 
-        val_loss = tte.val_eval(val, model)
+        val_loss = tte.test_eval(val, model)
         print(f'val/loss: {val_loss}')
         writer.add_scalar(tag='val/loss', scalar_value=val_loss, global_step=epoch)
 
         if epoch % insight_interval == 0:
-            plot_samples(epoch, model, sample_input, sample_targets, writer)
+            _plot_samples(epoch, model, sample_input, sample_targets, writer)
 
     print('Best model evaluation...')
     test_loss = tte.test_eval(test, model)
-    val_loss = tte.val_eval(val, model)
+    val_loss = tte.test_eval(val, model)
 
     print(test_loss, val_loss)
     print('Finished training process.')

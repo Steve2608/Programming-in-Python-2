@@ -1,6 +1,6 @@
 from pathlib import Path
 from random import randint
-from typing import Tuple, Optional, List, Union, Dict, NamedTuple
+from typing import Tuple, List, Union, Dict, NamedTuple, Callable
 
 import numpy as np
 import torch
@@ -13,49 +13,35 @@ from torchvision.transforms.functional import resize
 # ensure somewhat consistent executions
 # np.random.seed(0)
 
+_MIN_CROP_SIZE = 5
+_MAX_CROP_SIZE = 21
+
+_MIN_BORDER_DISTANCE = 20
+
+_MIN_IMAGE_SIZE = 70
+_MAX_IMAGE_SIZE = 100
+
 
 class CroppedImage(NamedTuple):
+    """
+    Named tuple for results of image cropping
+    """
     image_array: np.ndarray
     crop_array: np.ndarray
     target_array: np.ndarray
 
 
-class SimpleImageDataset(Dataset):
-    def __init__(self, root: Union[Path, str], transformer: Optional[tfs.Compose] = None,
-                 cache: bool = False, uses_per_image: int = 1):
+class CroppedImageDataset(Dataset):
+
+    def __init__(self, root: Union[Path, str], uses_per_image: int = 1):
         super().__init__()
 
-        self._transformer = transformer
-        self._data = dict() if cache else None
         self._uses_per_image = uses_per_image
-
         self._paths = self._image_paths(Path(root))
-
-    @property
-    def has_cache(self) -> bool:
-        return self._data is not None
-
-    @property
-    def transformer(self) -> Optional[tfs.Compose]:
-        return self._transformer
-
-    @property
-    def paths(self) -> List[Path]:
-        return list(self._paths.values())
+        self.transformers = tfs.Compose([RandomResize(), RandomCrop(), SimpleNorm()])
 
     def __getitem__(self, index: int):
-        if self.has_cache and index in self._data:
-            return self._data[index]
-
-        path = self._paths[index]
-        image = Image.open(path)
-
-        if self.transformer is not None:
-            image = self.transformer(image)
-
-        if self.has_cache:
-            self._data[index] = image
-        return image
+        return self.transformers(Image.open(self._paths[index]))
 
     def __len__(self):
         return len(self._paths)
@@ -65,29 +51,11 @@ class SimpleImageDataset(Dataset):
         return {i: path for i, path in enumerate(paths)}
 
 
-class CroppedImageDataset(Dataset):
-
-    def __init__(self, dataset: Dataset, transformer: Optional[tfs.Compose] = None):
-        self.dataset = dataset
-        if transformer is not None:
-            self.transformers = tfs.Compose([
-                transformer, RandomResize(), RandomCrop(), SimpleNorm()
-            ])
-        else:
-            self.transformers = tfs.Compose([RandomResize(), RandomCrop(), SimpleNorm()])
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, index: int):
-        return self.transformers(self.dataset[index])
-
-
 class RandomResize:
 
     def __init__(self,
                  # end exclusive
-                 size_range: Tuple[int, int] = (70, 101)):
+                 size_range: Tuple[int, int] = (_MIN_IMAGE_SIZE, _MAX_IMAGE_SIZE + 1)):
         self.size_range = size_range
 
     def __call__(self, image_pil: Image.Image):
@@ -96,11 +64,11 @@ class RandomResize:
         return resize(image_pil, new_size, interpolation=Image.LANCZOS)
 
 
-class RandomCrop:
+class RandomCrop(Callable):
     def __init__(self,
                  # end exclusive
-                 crop_range: Tuple[int, int] = (5, 22),
-                 min_border: int = 20):
+                 crop_range: Tuple[int, int] = (_MIN_CROP_SIZE, _MIN_CROP_SIZE + 1),
+                 min_border: int = _MIN_BORDER_DISTANCE):
         self.crop_range = crop_range
         self.min_border = min_border
 
@@ -123,7 +91,7 @@ class RandomCrop:
         return crop_image(numpy_image, crop_size=(crop_x, crop_y), crop_center=(center_x, center_y))
 
 
-class SimpleNorm:
+class SimpleNorm(Callable):
     def __call__(self, cropped: CroppedImage) -> CroppedImage:
         return CroppedImage(
             cropped.image_array.astype(np.float32) / 255,
@@ -133,9 +101,7 @@ class SimpleNorm:
 
 
 def custom_collate_fn(batch_list: List):
-    max_x = 100  # max(map(lambda x: x[0].shape[0], batch_list))
-    max_y = 100  # max(map(lambda y: y[0].shape[1], batch_list))
-    data = torch.zeros((len(batch_list), 2, max_x, max_y), dtype=torch.float32)
+    data = torch.zeros((len(batch_list), 2, _MAX_IMAGE_SIZE, _MAX_IMAGE_SIZE), dtype=torch.float32)
     labels = [torch.tensor(item[2], dtype=torch.float32) for item in batch_list]
     for i, (image_array, crop_array, target_array) in enumerate(batch_list):
         data[i, 0, :image_array.shape[0], :image_array.shape[1]] = torch.from_numpy(image_array)
@@ -145,6 +111,25 @@ def custom_collate_fn(batch_list: List):
 
 def crop_image(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int], *,
                copy: bool = True) -> CroppedImage:
+    """
+    Crops image at `crop_center` with size specified in `crop_size`. No input checks are performed.
+
+    Parameters
+    ----------
+    image_array : np.ndarray
+        Image as numpy array
+    crop_size : Tuple[int, int]
+        crop_size in (W, H)
+    crop_center : Tuple[int, int]
+        crop_center in (W, H)
+    copy : bool
+        copy (= not destroy) image_array parameter
+
+    Returns
+    -------
+    cropped_image : CroppedImage
+        cropped image
+    """
     # no input checks necessary
     image = image_array.copy() if copy else image_array
 
@@ -178,13 +163,11 @@ def train_test_split(dataset: Dataset, train: float = 0.8, val: float = 0.1, tes
 
     manual_seed(seed)
 
-    return random_split(dataset, (n_train, n_val, n_test))
+    return random_split(dataset, (n_train, n_val, n_test), generator=None)
 
 
 if __name__ == '__main__':
-    ds = SimpleImageDataset('../data')
-    print(len(ds))
-    crop_ds = CroppedImageDataset(ds)
+    crop_ds = CroppedImageDataset('../data')
     print(len(crop_ds))
     for elem in crop_ds[1]:
         print(elem.shape)

@@ -1,12 +1,30 @@
+from abc import ABC
+
 import torch
 
 
-class SimpleCNN(torch.nn.Module):
+class SimpleCNN(torch.nn.Module, ABC):
 
     def __init__(self, n_hidden: int, n_in_chn: int, n_kernels: int, kernel_size: int,
                  activation: str):
+        """
+        Creates a simple CNN specified by parameters.
+
+        Parameters
+        ----------
+        n_hidden : int
+            number of hidden layers
+        n_in_chn : int
+            number of input channels
+        n_kernels : int
+            number of kernels
+        kernel_size : int
+            kernel size
+        activation : str
+            activation function as string ('relu' and 'selu' supported)
+        """
         super().__init__()
-        self._activation = activation
+        self._activation = activation.lower()
         self._hidden_layers = self._create_hidden_layers(n_hidden, n_in_chn, n_kernels, kernel_size)
         self._output_layer = torch.nn.Conv2d(n_kernels, out_channels=1, kernel_size=kernel_size,
                                              padding=kernel_size // 2)
@@ -36,5 +54,6 @@ class SimpleCNN(torch.nn.Module):
     def forward(self, x):
         mask = x[:, 1].clone().to(dtype=torch.bool)
         x = self._hidden_layers(x)
+        # use selu for output_layer
         x = torch.nn.functional.selu(self._output_layer(x))
         return x, mask

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from load.loader import SimpleNorm, crop_image
+from load.loader import SimpleNorm, crop_image, _MAX_IMAGE_SIZE
 from models.simpleCNN import SimpleCNN
 from predict.util import load_config, load_pkl, save_pkl
 
@@ -63,13 +63,11 @@ def main(model_path: Union[str, Path], samples_path: Union[str, Path],
 
     with torch.no_grad():
         # see custom_collate_fn
-        max_x = 100  # max(map(lambda x: x[0].shape[0], images))
-        max_y = 100  # max(map(lambda y: y[0].shape[1], images))
         for i, (image_array, crop_size, crop_center) in enumerate(
                 zip(images, crop_sizes, crop_centers)):
             image_array, crop_array, crop_center = norm(
                 crop_image(image_array, crop_size, crop_center))
-            data = torch.zeros((1, 2, max_x, max_y), dtype=torch.float32)
+            data = torch.zeros((1, 2, _MAX_IMAGE_SIZE, _MAX_IMAGE_SIZE), dtype=torch.float32)
             data[0, 0, :image_array.shape[0], :image_array.shape[1]] = torch.from_numpy(image_array)
             data[0, 1, :image_array.shape[0], :image_array.shape[1]] = torch.from_numpy(crop_array)
             data = data.cuda()

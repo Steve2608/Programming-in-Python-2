@@ -1,11 +1,31 @@
+from typing import Optional
+
 import torch
 from torch import nn
 from torch.nn import MSELoss
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
-def _eval(loader: DataLoader, model: nn.Module, optimizer=None):
+def _eval(loader: DataLoader, model: nn.Module, optimizer: Optional[Optimizer] = None) -> float:
+    """
+    General purpose evaluation function
+
+    Parameters
+    ----------
+    loader : DataLoader
+        data loader
+    model : nn.Module
+        CNN to evaluate
+    optimizer : Optional[Optimizer]
+        optimizer to update during training
+
+    Returns
+    -------
+    loss : float
+        total loss divided by len(loader)
+    """
     is_train = optimizer is not None
     device = next(model.parameters()).device
 
@@ -31,17 +51,44 @@ def _eval(loader: DataLoader, model: nn.Module, optimizer=None):
     return total_loss / len(loader)
 
 
-def train_eval(train_loader: DataLoader, model: nn.Module, optimizer):
+def train_eval(train_loader: DataLoader, model: nn.Module, optimizer: Optimizer) -> float:
+    """
+    Evaluate model during training
+
+    Parameters
+    ----------
+    train_loader : DataLoader
+        loader for train data
+    model : nn.Module
+        CNN to evaluate
+    optimizer : Optimizer
+        optimizer to update
+
+    Returns
+    -------
+    loss : float
+        total loss divided by len(train_loader)
+    """
     assert optimizer is not None
     model.train()
     return _eval(train_loader, model, optimizer)
 
 
-def val_eval(val_loader: DataLoader, model: nn.Module):
-    model.eval()
-    return _eval(val_loader, model)
-
-
 def test_eval(test_loader: DataLoader, model: nn.Module):
+    """
+    Evaluate model during training
+
+    Parameters
+    ----------
+    test_loader : DataLoader
+        loader for validation or test data
+    model : nn.Module
+        CNN to evaluate
+
+    Returns
+    -------
+    loss : float
+        total loss divided by len(test_loader)
+    """
     model.eval()
     return _eval(test_loader, model)
