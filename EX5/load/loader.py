@@ -120,7 +120,7 @@ class RandomCrop:
         # noinspection PyTypeChecker
         numpy_image = np.asarray(image_PIL, dtype=np.uint8).T
 
-        return _ex4(numpy_image, crop_size=(crop_x, crop_y), crop_center=(center_x, center_y))
+        return crop_image(numpy_image, crop_size=(crop_x, crop_y), crop_center=(center_x, center_y))
 
 
 class SimpleNorm:
@@ -143,8 +143,8 @@ def custom_collate_fn(batch_list: List):
     return data, labels
 
 
-def _ex4(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int], *,
-         copy: bool = True) -> CroppedImage:
+def crop_image(image_array: np.ndarray, crop_size: Tuple[int, int], crop_center: Tuple[int, int], *,
+               copy: bool = True) -> CroppedImage:
     # no input checks necessary
     image = image_array.copy() if copy else image_array
 

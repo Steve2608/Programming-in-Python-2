@@ -1,11 +1,11 @@
 import json
+import pickle
 from pathlib import Path
-from typing import Union
+from typing import Union, Any
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from config import model_folder, best_model_name
 from vis.plot import plot
 
 
@@ -28,3 +28,13 @@ def plot_samples(epoch: int, model: torch.nn.Module, sample_batch, sample_target
         writer,
         epoch
     )
+
+
+def load_pkl(path: Union[str, Path]) -> Any:
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+
+def save_pkl(path: Union[str, Path], obj: Any):
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f)
