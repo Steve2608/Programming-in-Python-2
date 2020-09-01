@@ -38,7 +38,7 @@ class CroppedImageDataset(Dataset):
 
         self._uses_per_image = uses_per_image
         self._paths = self._image_paths(Path(root))
-        self.transformers = tfs.Compose([RandomResize(), RandomCrop(), SimpleNorm()])
+        self.transformers = tfs.Compose([RandomResize(), RandomCrop(), ZeroOneScaler()])
 
     def __getitem__(self, index: int):
         return self.transformers(Image.open(self._paths[index]))
@@ -55,19 +55,20 @@ class RandomResize:
 
     def __init__(self,
                  # end exclusive
-                 size_range: Tuple[int, int] = (_MIN_IMAGE_SIZE, _MAX_IMAGE_SIZE + 1)):
+                 size_range: Tuple[int, int] = (_MIN_IMAGE_SIZE, _MAX_IMAGE_SIZE)):
         self.size_range = size_range
 
     def __call__(self, image_pil: Image.Image):
-        new_size = randint(self.size_range[0], self.size_range[1] - 1), \
-                   randint(self.size_range[0], self.size_range[1] - 1)
+        new_size = randint(self.size_range[0], self.size_range[1]), \
+                   randint(self.size_range[0], self.size_range[1])
         return resize(image_pil, new_size, interpolation=Image.LANCZOS)
 
 
 class RandomCrop(Callable):
+
     def __init__(self,
                  # end exclusive
-                 crop_range: Tuple[int, int] = (_MIN_CROP_SIZE, _MAX_CROP_SIZE + 1),
+                 crop_range: Tuple[int, int] = (_MIN_CROP_SIZE, _MAX_CROP_SIZE),
                  min_border: int = _MIN_BORDER_DISTANCE):
         self.crop_range = crop_range
         self.min_border = min_border
@@ -76,10 +77,10 @@ class RandomCrop(Callable):
         size = image_PIL.size
 
         # generate odd crop numbers
-        crop_x = randint(self.crop_range[0], self.crop_range[1] - 1)
-        crop_y = randint(self.crop_range[0], self.crop_range[1] - 1)
+        crop_x = randint(self.crop_range[0], self.crop_range[1]) | 1
+        crop_y = randint(self.crop_range[0], self.crop_range[1]) | 1
         # make sure numbers are odd by setting LSB to 1
-        x, y = (size[0] - self.min_border) | 1, (size[1] - self.min_border) | 1
+        x, y = size[0] - self.min_border, size[1] - self.min_border
 
         center_x = np.random.randint(self.min_border + crop_x // 2 + 1, x - crop_x // 2)
         center_y = np.random.randint(self.min_border + crop_y // 2 + 1, y - crop_y // 2)
@@ -91,7 +92,7 @@ class RandomCrop(Callable):
         return crop_image(numpy_image, crop_size=(crop_x, crop_y), crop_center=(center_x, center_y))
 
 
-class SimpleNorm(Callable):
+class ZeroOneScaler(Callable):
     def __call__(self, cropped: CroppedImage) -> CroppedImage:
         return CroppedImage(
             cropped.image_array.astype(np.float32) / 255,

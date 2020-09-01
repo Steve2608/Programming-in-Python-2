@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from src.load.loader import SimpleNorm, crop_image, _MAX_IMAGE_SIZE
+from src.load.loader import ZeroOneScaler, crop_image, _MAX_IMAGE_SIZE
 from src.models.simpleCNN import SimpleCNN
 from src.predict.util import load_config, load_pkl, save_pkl
 
@@ -55,7 +55,7 @@ def main(model_path: Union[str, Path], samples_path: Union[str, Path],
     model.to(device=config['device'])
     model.load_state_dict(torch.load(model_path))
 
-    norm = SimpleNorm()
+    norm = ZeroOneScaler()
     images, crop_sizes, crop_centers = load_pkl(samples_path).values()
 
     predictions, masks = [], []
