@@ -9,15 +9,15 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import eval.train_test_eval as tte
-from load.loader import train_test_split, CroppedImageDataset, custom_collate_fn
-from models.simpleCNN import SimpleCNN
-from predict.util import load_config
-from vis.plot import plot
+import src.eval.train_test_eval as tte
+from src.load.loader import train_test_split, CroppedImageDataset, custom_collate_fn
+from src.models.simpleCNN import SimpleCNN
+from src.predict.util import load_config
+from src.vis.plot import plot
 
 
 def _plot_samples(epoch: int, model: torch.nn.Module, sample_batch, sample_targets,
-                 writer: SummaryWriter):
+                  writer: SummaryWriter):
     model.eval()
     sample_batch = sample_batch.to('cuda:0')
     output, masks = model(sample_batch)

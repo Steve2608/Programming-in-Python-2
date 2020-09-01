@@ -2,7 +2,7 @@
   "device": "cuda:0",
   "n_workers": 4,
   "batch_size": 32,
-  "n_epochs": 20,
+  "n_epochs": 50,
   "insight_interval": 1,
   "train_params": {
     "lr": 1e-3,

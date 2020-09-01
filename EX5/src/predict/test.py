@@ -8,9 +8,9 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from load.loader import SimpleNorm, crop_image, _MAX_IMAGE_SIZE
-from models.simpleCNN import SimpleCNN
-from predict.util import load_config, load_pkl, save_pkl
+from src.load.loader import SimpleNorm, crop_image, _MAX_IMAGE_SIZE
+from src.models.simpleCNN import SimpleCNN
+from src.predict.util import load_config, load_pkl, save_pkl
 
 
 def _plot_predicted(image_arrays: Sequence[np.ndarray], predictions: Sequence[np.ndarray],

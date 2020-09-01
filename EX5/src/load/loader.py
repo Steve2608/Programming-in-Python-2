@@ -167,7 +167,7 @@ def train_test_split(dataset: Dataset, train: float = 0.8, val: float = 0.1, tes
 
 
 if __name__ == '__main__':
-    crop_ds = CroppedImageDataset('../data')
+    crop_ds = CroppedImageDataset('../../data')
     print(len(crop_ds))
     for elem in crop_ds[1]:
         print(elem.shape)

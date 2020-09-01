@@ -9,7 +9,7 @@ def plot(input, target, prediction, writer: SummaryWriter, epoch: int):
         ax[0].clear()
         ax[0].set_title(f'Input_{i}')
         ax[0].imshow(input[i].detach().cpu(), cmap=plt.cm.gray, interpolation='none',
-                        origin='lower')
+                     origin='lower')
         ax[0].set_axis_off()
 
         ax[1].clear()
@@ -20,8 +20,8 @@ def plot(input, target, prediction, writer: SummaryWriter, epoch: int):
         ax[2].clear()
         ax[2].set_title(f'Prediction_{i}')
         ax[2].imshow(prediction[i].detach().cpu().view(target[i].shape), cmap=plt.cm.gray,
-                        interpolation='none',
-                        origin='lower')
+                     interpolation='none',
+                     origin='lower')
         ax[2].set_axis_off()
 
         fig.tight_layout()
