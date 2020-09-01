@@ -24,7 +24,15 @@ class SimpleCNN(torch.nn.Module, ABC):
             activation function as string ('relu' and 'selu' supported)
         """
         super().__init__()
-        self._activation = activation.lower()
+
+        activation = activation.lower()
+        if activation == 'relu':
+            self._activation = torch.nn.ReLU()
+        elif self._activation == 'selu':
+            self._activation = torch.nn.SELU()
+        else:
+            raise NotImplemented(f"Activation {self._activation} is not supported!")
+
         self._hidden_layers = self._create_hidden_layers(n_hidden, n_in_chn, n_kernels, kernel_size)
         self._output_layer = torch.nn.Conv2d(n_kernels, out_channels=1, kernel_size=kernel_size,
                                              padding=kernel_size // 2)
@@ -39,17 +47,9 @@ class SimpleCNN(torch.nn.Module, ABC):
                 bias=True,
                 padding=kernel_size // 2)
             )
-            layers.append(self._get_activation())
+            layers.append(self._activation)
             n_in_chn = n_kernels
         return torch.nn.Sequential(*layers)
-
-    def _get_activation(self):
-        if self._activation == 'relu':
-            return torch.nn.ReLU()
-        elif self._activation == 'selu':
-            return torch.nn.SELU()
-        else:
-            raise NotImplemented(f"Activation {self._activation} is not supported!")
 
     def forward(self, x):
         mask = x[:, 1].clone().to(dtype=torch.bool)
