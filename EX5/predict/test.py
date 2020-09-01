@@ -75,7 +75,7 @@ def main(model_path: Union[str, Path], samples_path: Union[str, Path],
             data = data.cuda()
             output, bool_mask = model(data)
             prediction = output[0, 0, bool_mask[0]].reshape(crop_size)
-            predictions.append((prediction.detach().cpu().numpy() * 256).astype(np.uint8))
+            predictions.append((prediction.detach().cpu().numpy() * 255).astype(np.uint8))
             masks.append(bool_mask.detach().cpu().numpy())
 
     save_pkl(pkl_path, predictions)
