@@ -1,10 +1,10 @@
 import shutil
+from hashlib import sha1
 from pathlib import Path
 from typing import List
 
-import numpy as np
 from PIL import Image, UnidentifiedImageError
-from joblib import hash
+from PIL.ImageStat import Stat
 from tqdm import tqdm
 
 
@@ -41,8 +41,10 @@ def _check_paths_params(input_dir: str, logfile: str, output_dir: str):
 
 
 def _process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: str) -> int:
-    hashes = dict()
-
+    def hash_fun(img: Image):
+        return sha1(img.tobytes()).hexdigest()
+    
+    hashes = {}
     with open(logfile, 'w') as log:
         def _write_to_log(path: Path, error_code: int):
             log.write(f'{path.relative_to(input_dir)};{error_code}\n')
@@ -58,29 +60,24 @@ def _process_files(paths: List[Path], input_dir: str, output_dir: str, logfile: 
 
             # file exists, is small enough and might be an image
             try:
-                img = Image.open(str(path))
+                img = Image.open(path)
             except (FileNotFoundError, ValueError, UnidentifiedImageError) as e:
                 _write_to_log(path, 3)
                 if _verbose:
                     print(e)
                 continue
 
-            img = np.asarray(img)
-            # check if image has more than one grayscale value
-
-            # assuming we only have gray-scale images we just have to check if all values are equal
-            # computationally much faster than np.var(img) == 0
-            if np.all(img == img[0, 0]):
+            if Stat(img).var == 0:
                 _write_to_log(path, 4)
                 continue
 
-            # check if (W, H) big enough and image has exactly two dimensions
-            if len(img.shape) != 2 or img.shape[0] < _w_min or img.shape[1] < _h_min:
+            # check if (W, H) big enough and image has exactly two dimensions 
+            if len(img.size) != 2 or img.size[0] < _w_min or img.size[1] < _h_min:
                 _write_to_log(path, 5)
                 continue
 
             # file is valid in every way
-            h = hash(img)
+            h = hash_fun(img)
             if h in hashes:
                 _write_to_log(path, 6)
                 if _verbose:
