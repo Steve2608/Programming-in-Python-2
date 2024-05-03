@@ -1,4 +1,4 @@
 numpy==1.22.0
 pandas==1.1.1
-tqdm==4.48.2
+tqdm==4.66.3
 Pillow==10.3.0
